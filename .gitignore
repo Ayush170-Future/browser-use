@@ -191,3 +191,5 @@ gcp-login.json
 *.jsonl
 
 uv.lock
+trufflehog/
+.pre-commit-config.yaml
