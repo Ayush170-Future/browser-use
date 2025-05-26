@@ -30,3 +30,13 @@ repos:
       - id: codespell # See pyproject.toml for args
         additional_dependencies:
           - tomli
+
+
+  - repo: local
+    hooks:
+      - id: trufflehog
+        name: TruffleHog
+        description: Detect secrets in your data.
+        entry: "trufflehog/trufflehog-hook.sh"
+        language: script
+        stages: ["pre-commit", "pre-push"]

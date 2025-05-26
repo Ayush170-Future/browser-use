@@ -36,23 +36,6 @@ llm = AzureChatOpenAI(
     temperature=0,
 )
 
-def replace_value_recursive(data, key_to_replace, new_value=""):
-    if isinstance(data, dict):
-        new_dict = {}
-        for key, value in data.items():
-            if key == key_to_replace:
-                new_dict[key] = new_value
-            else:
-                new_dict[key] = replace_value_recursive(value, key_to_replace, new_value)
-        return new_dict
-    elif isinstance(data, list):
-        new_list = []
-        for item in data:
-            new_list.append(replace_value_recursive(item, key_to_replace, new_value))
-        return new_list
-    else:
-        return data
-
 async def execute_task(task: str, use_global_context: bool, feature: str | None = None, planner_req: bool = False):
     global global_context, agent
     # browser_config = BrowserConfig(proxy=proxy, chrome_instance_path="chrome_instance_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
@@ -128,7 +111,10 @@ async def get_current_page():
                 "success":True,
                 "msg": "Agent and current HTML found",
                 "current_web_page": cleaned_html,
-                "current_markdown": markdown_content
+                "current_markdown": markdown_content,
+                "current_url": agent.state.url,
+                "current_title": agent.state.title,
+                "current_tabs": agent.state.tabs,
             }
         else:
             return {
