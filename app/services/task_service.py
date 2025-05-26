@@ -1,15 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.core.config import settings
-from langchain_openai import ChatOpenAI
+from os import getenv
+from browser_use import Agent, Browser, BrowserConfig, BrowserContextConfig
 from langchain_openai import AzureChatOpenAI
-from browser_use.agent.service import Agent
-from browser_use.browser.browser import Browser
-from browser_use.browser.browser import BrowserConfig
-from browser_use.browser.context import BrowserContextConfig
-from playwright._impl._api_structures import ProxySettings
+from app.core.config import settings
 from app.core.utils import clean_html,html_to_markdown
+from playwright._impl._api_structures import ProxySettings
 import os
 import json
 
@@ -38,9 +35,8 @@ llm = AzureChatOpenAI(
 
 async def execute_task(task: str, use_global_context: bool, feature: str | None = None, planner_req: bool = False):
     global global_context, agent
-    # browser_config = BrowserConfig(proxy=proxy, chrome_instance_path="chrome_instance_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    # browser = Browser()
-    # browser_config = BrowserConfig()
+
+    # browser_config = BrowserConfig(proxy=proxy)
     browser_config = BrowserConfig(proxy=proxy)
     browser = Browser(config=browser_config)
 
@@ -50,7 +46,6 @@ async def execute_task(task: str, use_global_context: bool, feature: str | None 
         context = await browser.new_context(
             config=BrowserContextConfig(
                 trace_path="./tmp/traces/",
-                # cookies_file="/Users/ayushsingh/Documents/programming/browser-use/cookies.json",
                 browser_window_size={'width': 1920, 'height': 1080}
             )
         )
@@ -67,7 +62,7 @@ async def execute_task(task: str, use_global_context: bool, feature: str | None 
         browser=browser
     )
 
-    if not planner_req:  # Remove the planner
+    if not planner_req:
         agent = Agent(
             task=task,
             llm=llm,
@@ -77,15 +72,7 @@ async def execute_task(task: str, use_global_context: bool, feature: str | None 
             browser=browser
         )
 
-    await agent.run(25)
-
-    # browser_context = agent.browser_context
-    # agent_task_status=agent.task_completed
-    # eval_prev_goal=agent.eval
-    # memory=agent.memory
-    # next_goal=agent.next_goal
-    # result=agent._last_result
-    # completed_functionalities=agent.completed_functionalities
+    await agent.run(15)
 
     output = agent.state
     return output
@@ -94,32 +81,37 @@ async def get_current_page():
     global agent
     if agent is None:
         return {
-            "success":False,
+            "success":True,
             "msg": "No agent found",
-            "current_web_page": "",
-            "current_markdown": ""
+            "current_page_html": "",
+            "current_markdown": "",
+            "url": "",
+            "tabs": []
         }
     else:
-        current_html = agent.get_current_html()
+        current_html = await agent.browser_context.get_page_html()
         if current_html:
             with open("current.html", "w") as f:
                 f.write(current_html)
 
             cleaned_html = clean_html(current_html)
             markdown_content = html_to_markdown(cleaned_html)
+            url = agent.state.history.history[-1].state.url
+            tabs = agent.state.history.history[-1].state.tabs
             return {
                 "success":True,
                 "msg": "Agent and current HTML found",
-                "current_web_page": cleaned_html,
+                "current_page_html": cleaned_html,
                 "current_markdown": markdown_content,
-                "current_url": agent.state.url,
-                "current_title": agent.state.title,
-                "current_tabs": agent.state.tabs,
+                "url": url,
+                "tabs": tabs
             }
         else:
             return {
                 "success":False,
                 "msg": "Agent found but no current HTML found",
-                "current_web_page": "",
-                "current_markdown": ""
+                "current_page_html": "",
+                "current_markdown": "",
+                "url": "",
+                "tabs": []
             }
